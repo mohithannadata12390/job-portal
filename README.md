@@ -1,85 +1,70 @@
-# Job Portal — AI-Powered MERN Job Portal
+# Job Portal — AI-Powered MERN Platform
 
-A full-stack job portal where **job seekers** can browse and apply for jobs, and **recruiters** can post jobs, manage applicants, and leverage AI tools to evaluate candidates. Features include **email OTP verification**, **password reset**, **AI-powered resume analysis**, **candidate matching**, **RAG recruiter assistant**, **AI interview generation**, and **automated hiring reports**.
-
-> Built with the MERN stack (MongoDB, Express, React, Node.js) + Gemini AI.
+An enterprise-ready, full-stack job portal built with the **MERN stack** (MongoDB, Express.js, React 18, Node.js) and powered by **Google Gemini AI**. The platform features dual AI assistants — a **Student Career Coach** for job seekers and a **RAG Recruiter Assistant** for hiring teams — along with an intelligent **Applicant Tracking System (ATS)**, automated **resume PDF skill extraction**, candidate **match scoring & ranking**, **AI interview generation**, and **comprehensive hiring scorecards**.
 
 ---
 
-## ✨ Features
+## ✨ Key Features
 
-### For Job Seekers (Students)
-- Register with **email OTP verification** (account is verified before login)
-- Auto-login right after verifying the OTP
-- Browse all jobs, search by keyword, filter by type/location
-- Apply to jobs and track application status in real-time (Applied / Accepted / Rejected)
-- Save / bookmark jobs for later
-- **Upload resume (PDF)** — AI automatically extracts and syncs skills directly to your profile
-- **AI Resume Analysis** — get a skill match score against any job you applied to
-- Profile page with bio, skills, resume link, and applied-jobs history
-- Edit profile and **change password** (OTP based)
+### 🎓 For Job Seekers (Students)
+- **AI Career Assistant Drawer** — An interactive AI career mentor accessible directly from the navigation bar. Provides real-time guidance on job matching, skill gap closure, resume enhancement recommendations, and interview preparation with persistent chat history.
+- **Email OTP Verification** — Secure account registration with email verification (via Nodemailer + Gmail OAuth2) and instant auto-login upon confirmation.
+- **Smart Job Search & Filters** — Browse, search, and filter job postings by keywords, location, and industry domain.
+- **Automated Resume Parsing** — Upload PDF resumes; the system extracts, normalizes, and deduplicates technical skills and automatically syncs them to your user profile.
+- **AI Resume Match Score** — View instant compatibility scores (%) comparing your resume skills against specific job requirements with matched vs. missing skills breakdown.
+- **Application Tracking** — Track application statuses in real-time (`Applied`, `Accepted`, `Rejected`).
+- **Profile & Security** — Manage bio, contact details, skills, resume files, and reset/change passwords via secure OTP verification.
 
-### For Recruiters
-- Register / login as a recruiter
-- Create and manage companies
-- Post jobs and edit job listings
-- View all applicants in a detailed **Applicant Tracking System (ATS)**
-- Accept or reject applicants with real-time status updates
-- View **AI Match Score** (resume vs. job requirements) for each applicant
-- **Ask AI Assistant** — a RAG-powered chat that answers recruiter queries about candidates (missing skills, comparisons, rankings, strengths, drawbacks)
-- **Generate AI Interview** — auto-generates tailored technical and behavioral interview questions with ideal answer guides for each candidate
-- **AI Hiring Report** — generates a complete, candidate-specific evaluation scorecard (Technical, Problem Solving, Domain Fit, Culture Fit, Strengths, Gaps, Hiring Recommendation)
+### 💼 For Recruiters
+- **Company & Job Management** — Create and configure companies, publish job openings with structured requirement tags, and edit active listings.
+- **Smart ATS (Applicant Tracking System)**:
+  - **AI Match Ranking** — Instantly sort candidates by AI Match Score (highest to lowest) or application date.
+  - **Dynamic Match Level Filters** — Segment applicants into High Match (≥ 70%), Medium Match (40–69%), and Low Match (< 40%).
+  - **Talent Overview Bar** — High-level summary of top applicant score, average talent score, and applicant count.
+  - **Applicant Decisioning** — Accept or reject candidates with real-time status badges.
+- **RAG Recruiter Assistant** — Ask free-form questions about applicants (e.g., *"Compare candidate A and B"*, *"What are their missing backend skills?"*, *"Who has the strongest React experience?"*). Grounded in actual resume data.
+- **AI Interview Generator & Evaluator** — Automatically generate 5 role-tailored technical and behavioral interview questions with scoring guidelines.
+- **AI Hiring Report Scorecard** — Generate multidimensional candidate evaluations (Technical, Problem Solving, Domain Fit, Culture Fit) with identified strengths, critical skill gaps, and hiring tier recommendations (`Strong Hire`, `Hire`, `Hire with Training`, `Hold`, `Reject`).
 
-### Security / Account
-- **Email OTP verification** on signup (via Nodemailer + Gmail OAuth2)
-- **Forgot password** flow from the login page (OTP based)
-- **Change password** from the profile (OTP based)
-- Passwords hashed with bcrypt, auth via JWT stored in an httpOnly cookie
-- Role-based access control (RBAC) for student and recruiter routes
-
-### AI Features
-- **Resume PDF Skill Extraction** — extracts and deduplicates skills from uploaded resumes using `pdf-parse`, supports Google Drive/cloud URLs, and syncs directly to `user.profile.skills`
-- **Resume-to-Job Match Scoring** — compares candidate skills against job requirements and calculates an AI match percentage with matched/missing skills breakdown
-- **RAG Recruiter Assistant** — answers free-form recruiter questions about candidates with grounded, context-aware responses (candidate comparisons, skill gaps, project highlights, drawbacks)
-- **AI Interview Generator** — generates 5 tailored questions with golden answer criteria per candidate based on their resume skills and job requirements
-- **AI Hiring Report** — differentiated, candidate-specific scorecards with authentic strengths, skill gaps, and a hiring tier recommendation (Strong Hire / Hire / Hire with Training / Hold / Reject)
-- **Google Gemini API Support** — all AI features automatically use Gemini 1.5 Flash if `GEMINI_API_KEY` is configured in `.env`, with a robust built-in fallback engine that works without any API key
+### 🧠 Dual-Mode AI Architecture
+- **Built-in Standalone Engine (Zero Setup)** — Comes with a complete, rule-grounded NLP and RAG fallback engine (`aiFallbackService.js`) that works immediately without any external API keys or paid credits.
+- **Google Gemini 1.5 Flash Support** — Seamlessly elevates responses using Gemini LLM when `GEMINI_API_KEY` is provided in `.env`.
+- **Optional Python FastAPI Microservice** — Dedicated microservice (`ai-service`) using `SentenceTransformers` embeddings, cosine similarity, and NLTK text processing.
 
 ---
 
 ## 🛠 Tech Stack
 
 ### Frontend
-| Technology | Purpose |
-|:-----------|:--------|
-| React 18 + Vite | UI framework and build tool |
-| Redux Toolkit + redux-persist | Global state management with persistence |
-| React Router DOM v7 | Client-side routing |
-| Tailwind CSS | Utility-first styling |
-| Radix UI (shadcn/ui) | Accessible UI primitives (Dialog, Select, Popover, etc.) |
-| Framer Motion | Micro-animations and transitions |
-| Axios | HTTP client for API calls |
-| Sonner | Toast notifications |
-| Lucide React | Icon set |
+| Technology | Description |
+|:---|:---|
+| **React 18 + Vite** | High-performance SPA frontend and build tooling |
+| **Redux Toolkit + Redux Persist** | Global state management with local storage persistence |
+| **React Router DOM v7** | Client-side routing and protected routes |
+| **Tailwind CSS** | Responsive styling and modern UI components |
+| **Radix UI / shadcn/ui** | Accessible UI primitives (Dialog, Select, Popover, Badge, Drawer) |
+| **Framer Motion** | Fluid animations and transitions |
+| **Axios** | HTTP client with cookie-based credential handling |
+| **Lucide React** | Modern iconography |
+| **Sonner** | Interactive toast notifications |
 
 ### Backend
-| Technology | Purpose |
-|:-----------|:--------|
-| Node.js + Express | REST API server |
-| MongoDB + Mongoose | Database and ODM |
-| JWT + bcryptjs | Authentication and password hashing |
-| Multer + Cloudinary | File uploads (resumes, profile photos) |
-| pdf-parse | PDF text extraction for resume skill analysis |
-| Nodemailer + Gmail OAuth2 | OTP email verification and password reset |
-| Google Gemini API (optional) | Dynamic LLM generation for AI features |
+| Technology | Description |
+|:---|:---|
+| **Node.js + Express.js** | RESTful API server |
+| **MongoDB + Mongoose** | Document database with relational population |
+| **JWT + bcryptjs** | Authentication and password hashing via httpOnly cookies |
+| **Multer + Cloudinary** | Secure media and PDF resume uploads |
+| **pdf-parse** | Server-side PDF extraction for resume skill parsing |
+| **Nodemailer + Gmail OAuth2** | OTP transactional email verification and password reset |
+| **Google Gemini API** | Advanced LLM synthesis for career coaching, RAG Q&A, and reports |
 
-### AI / Data Layer
-| Technology | Purpose |
-|:-----------|:--------|
-| `resumeExtractor.js` | PDF skill parser with deduplication and normalization |
-| `aiFallbackService.js` | Grounded RAG engine for assistant, interview, and report generation |
-| `aiClient.js` | HTTP client for optional Python AI microservice |
-| Gemini 1.5 Flash | LLM for dynamic AI responses (when API key is set) |
+### Optional AI Microservice (`ai-service`)
+| Technology | Description |
+|:---|:---|
+| **Python 3.10+ / FastAPI** | High-throughput asynchronous AI microservice |
+| **SentenceTransformers** | Semantic vector embeddings (`all-MiniLM-L6-v2`) |
+| **pdfplumber / NLTK** | Deep resume text processing and tokenization |
 
 ---
 
@@ -87,332 +72,298 @@ A full-stack job portal where **job seekers** can browse and apply for jobs, and
 
 ```
 job-portal/
-│
 ├── Backend/
 │   ├── controllers/
-│   │   ├── user.controller.js          # Register, login, OTP, profile
-│   │   ├── job.controller.js           # Post, search, filter jobs
-│   │   ├── company.controller.js       # Company CRUD
-│   │   ├── application.controller.js   # Apply, status updates
-│   │   └── ai.controller.js            # All AI features (resume, match, chat, interview, report)
-│   │
+│   │   ├── user.controller.js           # Auth, OTP verification, profile management
+│   │   ├── job.controller.js            # Job posting, public search, recommendations
+│   │   ├── company.controller.js        # Company registration and updates
+│   │   ├── application.controller.js    # Job application submission and ATS status
+│   │   └── ai.controller.js             # Dual AI assistants, match scores, interviews, reports
 │   ├── models/
-│   │   ├── user.model.js               # User schema (student / recruiter)
-│   │   ├── job.model.js                # Job schema
-│   │   ├── company.model.js            # Company schema
-│   │   ├── application.model.js        # Application schema
-│   │   ├── resumeAnalysis.model.js     # Extracted resume skills + raw text
-│   │   ├── candidateMatch.model.js     # Job match scores, matched/missing skills
-│   │   ├── interview.model.js          # AI interview questions + answers
-│   │   ├── aiReport.model.js           # Hiring report scorecard
-│   │   └── ragConversation.model.js    # AI assistant chat history
-│   │
+│   │   ├── user.model.js                # User schema (Student & Recruiter roles)
+│   │   ├── job.model.js                 # Job schema with requirements & company ref
+│   │   ├── company.model.js             # Company profile & branding schema
+│   │   ├── application.model.js         # Application status & applicant references
+│   │   ├── resumeAnalysis.model.js      # Extracted resume skills & raw parsed text
+│   │   ├── candidateMatch.model.js      # Match percentage, matched & missing skills
+│   │   ├── ragConversation.model.js     # Recruiter AI assistant conversation history
+│   │   ├── studentConversation.model.js # Student Career Assistant conversation history
+│   │   ├── interview.model.js           # AI interview questions & evaluation rubrics
+│   │   └── aiReport.model.js            # Comprehensive candidate hiring scorecards
 │   ├── routes/
-│   │   ├── user.route.js
-│   │   ├── job.route.js
-│   │   ├── company.route.js
-│   │   ├── application.route.js
-│   │   └── ai.route.js                 # All /api/ai/* endpoints
-│   │
+│   │   ├── user.route.js                # /api/user/*
+│   │   ├── job.route.js                 # /api/job/*
+│   │   ├── company.route.js             # /api/company/*
+│   │   ├── application.route.js         # /api/application/*
+│   │   └── ai.route.js                  # /api/ai/*
 │   ├── middleware/
-│   │   ├── isAuthenticated.js          # JWT verification
-│   │   ├── optionalAuth.js             # Optional JWT (public routes)
-│   │   └── multer.js                   # File upload config
-│   │
+│   │   ├── isAuthenticated.js           # JWT authentication check
+│   │   ├── optionalAuth.js              # Optional token resolver for public routes
+│   │   └── multer.js                    # Memory storage file upload handler
 │   ├── utils/
-│   │   ├── db.js                       # MongoDB connection
-│   │   ├── cloud.js                    # Cloudinary config
-│   │   ├── datauri.js                  # Buffer → data URI helper
-│   │   ├── mailer.js                   # Nodemailer + Gmail OAuth2
-│   │   ├── resumeExtractor.js          # PDF text extraction + skill parser
-│   │   ├── aiFallbackService.js        # Grounded RAG engine (assistant, interview, report)
-│   │   └── aiClient.js                 # HTTP client for Python AI microservice
-│   │
-│   ├── index.js                        # Express app entry point
-│   ├── example.env                     # .env template (no secrets)
-│   └── .env                            # Your secrets (gitignored)
+│   │   ├── db.js                        # MongoDB database connection
+│   │   ├── cloud.js                     # Cloudinary configuration
+│   │   ├── datauri.js                   # Buffer to Data URI transformer
+│   │   ├── mailer.js                    # Nodemailer Gmail OAuth2 transporter
+│   │   ├── resumeExtractor.js           # PDF parsing and skill taxonomy normalizer
+│   │   ├── aiFallbackService.js         # Standalone grounded AI engine (no API key needed)
+│   │   └── aiClient.js                  # Microservice bridge client
+│   ├── example.env                      # Environment variable blueprint
+│   └── index.js                         # Server entry point
 │
 ├── Frontend/
 │   ├── src/
 │   │   ├── components/
 │   │   │   ├── admincomponent/
-│   │   │   │   ├── ApplicantsTable.jsx       # ATS table with AI match scores + status
-│   │   │   │   ├── AIAssistantDrawer.jsx     # RAG recruiter chat drawer
-│   │   │   │   ├── AIInterviewModal.jsx      # AI interview question generator
-│   │   │   │   ├── AIReportModal.jsx         # AI hiring report scorecard
-│   │   │   │   ├── FormattedMessage.jsx      # Markdown renderer for AI chat
-│   │   │   │   ├── Applicants.jsx            # Applicants page wrapper
-│   │   │   │   ├── AdminJobs.jsx / AdminJobsTable.jsx
-│   │   │   │   ├── Companies.jsx / CompaniesTable.jsx
-│   │   │   │   ├── CompanyCreate.jsx / CompanySetup.jsx
-│   │   │   │   ├── PostJob.jsx
-│   │   │   │   └── ProtectedRoute.jsx
-│   │   │   │
+│   │   │   │   ├── Applicants.jsx             # ATS dashboard with AI ranking & filters
+│   │   │   │   ├── ApplicantsTable.jsx        # Candidate table with match breakdown
+│   │   │   │   ├── AIAssistantDrawer.jsx      # Recruiter RAG assistant chat drawer
+│   │   │   │   ├── AIInterviewModal.jsx       # Candidate interview generator modal
+│   │   │   │   ├── AIReportModal.jsx          # Candidate hiring scorecard modal
+│   │   │   │   ├── FormattedMessage.jsx       # Markdown styling for AI chat responses
+│   │   │   │   ├── AdminJobs.jsx              # Recruiter job management view
+│   │   │   │   ├── AdminJobsTable.jsx         # Recruiter job list table
+│   │   │   │   ├── Companies.jsx              # Recruiter companies view
+│   │   │   │   ├── CompaniesTable.jsx         # Recruiter company list table
+│   │   │   │   ├── CompanyCreate.jsx          # Register company form
+│   │   │   │   ├── CompanySetup.jsx           # Company settings and logo upload
+│   │   │   │   ├── PostJob.jsx                # Job publication form
+│   │   │   │   └── ProtectedRoute.jsx         # Role-based route guard
 │   │   │   ├── components_lite/
-│   │   │   │   ├── Profile.jsx               # User profile with resume upload
-│   │   │   │   ├── ResumeAnalysis.jsx        # AI skill sync + match score view
-│   │   │   │   ├── JobMatchScore.jsx         # Per-job match score component
-│   │   │   │   ├── Description.jsx           # Job detail page
-│   │   │   │   ├── AppliedJob.jsx            # Applied jobs history
-│   │   │   │   ├── Home.jsx / Jobs.jsx / Browse.jsx
-│   │   │   │   ├── LatestJobs.jsx / JobCards.jsx / Job1.jsx
-│   │   │   │   ├── Navbar.jsx / Footer.jsx / Header.jsx
-│   │   │   │   ├── Filtercard.jsx / Categories.jsx
-│   │   │   │   ├── SavedJobs.jsx / RecommendedJobs.jsx
-│   │   │   │   ├── EditProfileModal.jsx
-│   │   │   │   ├── TermsAndConditions.jsx / TermsofService.jsx
-│   │   │   │   └── PrivacyPolicy.jsx
-│   │   │   │
+│   │   │   │   ├── Navbar.jsx                 # Navigation with Student AI trigger
+│   │   │   │   ├── StudentAIAssistantDrawer.jsx # Student AI Career Coach drawer
+│   │   │   │   ├── Profile.jsx                # Student profile with resume upload & skills
+│   │   │   │   ├── ResumeAnalysis.jsx         # Skill match analyzer modal
+│   │   │   │   ├── JobMatchScore.jsx          # Match badge indicator
+│   │   │   │   ├── Description.jsx            # Detailed job description & application
+│   │   │   │   ├── AppliedJob.jsx             # User application history
+│   │   │   │   ├── Home.jsx                   # Landing page
+│   │   │   │   ├── Jobs.jsx / Browse.jsx      # Job exploration views
+│   │   │   │   ├── LatestJobs.jsx             # Featured jobs
+│   │   │   │   ├── Filtercard.jsx             # Search filter controls
+│   │   │   │   ├── EditProfileModal.jsx       # Profile editor modal
+│   │   │   │   └── Footer.jsx                 # Application footer
 │   │   │   ├── authentication/
-│   │   │   │   ├── Login.jsx
-│   │   │   │   ├── Register.jsx
-│   │   │   │   ├── VerifyOtp.jsx
-│   │   │   │   └── ResetPassword.jsx
-│   │   │   │
-│   │   │   └── ui/                     # Radix UI / shadcn primitives
-│   │   │
-│   │   ├── redux/
-│   │   │   ├── store.js
-│   │   │   ├── authSlice.js
-│   │   │   ├── jobSlice.js
-│   │   │   ├── companyslice.js
-│   │   │   ├── applicationSlice.js
-│   │   │   └── aiSlice.js
-│   │   │
-│   │   ├── hooks/
-│   │   │   ├── useGetAllJobs.jsx
-│   │   │   ├── useGetAllJAdminobs.jsx
-│   │   │   ├── useGetAllAppliedJobs.jsx
-│   │   │   ├── useGetCompanyById.jsx
-│   │   │   └── usegetAllCompanies.jsx
-│   │   │
-│   │   └── utils/data.js               # API base URL constants
-│   │
-│   ├── index.html
+│   │   │   │   ├── Login.jsx                  # Login view
+│   │   │   │   ├── Register.jsx               # Registration view with role toggle
+│   │   │   │   ├── VerifyOtp.jsx              # 6-digit OTP verification view
+│   │   │   │   └── ResetPassword.jsx          # Password reset view
+│   │   │   └── ui/                            # Shared UI components (shadcn/radix)
+│   │   ├── redux/                             # Slices: auth, job, company, application, ai
+│   │   └── utils/data.js                      # API base URL configuration
 │   ├── vite.config.js
 │   └── tailwind.config.js
 │
-├── ai-service/                         # Optional Python FastAPI microservice
-│   ├── main.py
-│   ├── services/                       # matching, rag, interview, resume, llm
-│   └── utils/
+├── ai-service/                                # (Optional) Python FastAPI service
+│   ├── main.py                                # API routers & endpoints
+│   ├── services/                              # Matching, RAG, Interview, Resume, LLM
+│   ├── requirements.txt                       # Python dependencies
+│   └── .env.example
 │
 └── README.md
 ```
 
 ---
 
-## ✅ Prerequisites
+## 🚀 Getting Started
 
-- **Node.js** v18 or higher
-- **npm** (comes with Node.js)
-- A **MongoDB** database (local or [MongoDB Atlas](https://www.mongodb.com/atlas) free tier)
-- A **Cloudinary** account (for profile photo / resume uploads) — free tier works
-- A **Gmail account with OAuth2** credentials (for sending OTP emails)
-- *(Optional)* A **Google Gemini API key** from [Google AI Studio](https://aistudio.google.com/) for dynamic AI responses
+### Prerequisites
+- **Node.js** (v18.x or higher)
+- **MongoDB** (Local instance or [MongoDB Atlas](https://www.mongodb.com/atlas))
+- **Cloudinary Account** (Free tier for photo & resume hosting)
+- **Gmail Account with Google Cloud OAuth2** (For OTP emails)
+- *(Optional)* **Google Gemini API Key** from [Google AI Studio](https://aistudio.google.com/)
 
 ---
 
-## ⚙️ Setup & Installation
-
-### 1. Clone the repo
+### Step 1: Clone the Repository
 ```bash
 git clone https://github.com/mohithannadata12390/job-portal.git
 cd job-portal
 ```
 
-### 2. Backend setup
+---
 
-```bash
-cd Backend
-npm install
-```
+### Step 2: Configure and Run Backend
 
-Create a file named **`.env`** inside the `Backend/` folder:
+1. Navigate to the backend folder and install dependencies:
+   ```bash
+   cd Backend
+   npm install
+   ```
 
-```env
-# Database
-MONGO_URI = your_mongodb_connection_string
+2. Create a `.env` file in the `Backend/` directory:
+   ```env
+   # Database
+   MONGO_URI=your_mongodb_connection_string
 
-# Auth
-JWT_SECRET = any_long_random_secret
+   # Authentication
+   JWT_SECRET=your_jwt_secret_key
 
-# Cloudinary (image & resume uploads)
-CLOUD_NAME = your_cloud_name
-CLOUD_API  = your_cloudinary_api_key
-API_SECRET = your_cloudinary_api_secret
+   # Cloudinary (Resumes & Profile Photos)
+   CLOUD_NAME=your_cloudinary_cloud_name
+   CLOUD_API=your_cloudinary_api_key
+   API_SECRET=your_cloudinary_api_secret
 
-# Server
-PORT = 5011
-NODE_ENV = development
+   # Server Configuration
+   PORT=5011
+   NODE_ENV=development
+   CORS_ORIGIN=http://localhost:5173
 
-# Allowed frontend origins (comma separated, no trailing slash)
-CORS_ORIGIN = http://localhost:5173
+   # Email Service (Gmail OAuth2)
+   EMAIL_USER=your_email@gmail.com
+   CLIENT_ID=your_oauth_client_id
+   CLIENT_SECRET=your_oauth_client_secret
+   REFRESH_TOKEN=your_oauth_refresh_token
 
-# Email (Gmail OAuth2 - for OTP verification)
-EMAIL_USER    = your_gmail_address
-CLIENT_ID     = your_google_oauth_client_id
-CLIENT_SECRET = your_google_oauth_client_secret
-REFRESH_TOKEN = your_google_oauth_refresh_token
+   # AI Configuration (Optional: Gemini 1.5 Flash)
+   # If left empty, the built-in standalone fallback engine will be used automatically
+   GEMINI_API_KEY=
+   GEMINI_MODEL=gemini-1.5-flash
+   ```
 
-# AI — Google Gemini (optional, for dynamic LLM responses)
-# Get a free key at https://aistudio.google.com/
-GEMINI_API_KEY =
-GEMINI_MODEL   = gemini-1.5-flash
-```
-
-Start the backend:
-```bash
-npm run dev
-```
-The server runs at **http://localhost:5011**
-
-> **Note:** Set `NODE_ENV = development` while developing locally.
-
-### 3. Frontend setup
-
-Open a **new terminal**:
-
-```bash
-cd Frontend
-npm install
-npm run dev
-```
-The app runs at **http://localhost:5173**
+3. Launch the backend server:
+   ```bash
+   npm run dev
+   ```
+   *The backend will be running at `http://localhost:5011`.*
 
 ---
 
-## ▶️ Running the App
+### Step 3: Configure and Run Frontend
 
-| Step | Command | Folder | URL |
-|------|---------|--------|-----|
-| 1. Start backend | `npm run dev` | `Backend/` | http://localhost:5011 |
-| 2. Start frontend | `npm run dev` | `Frontend/` | http://localhost:5173 |
+1. In a new terminal, navigate to the frontend folder and install dependencies:
+   ```bash
+   cd Frontend
+   npm install
+   ```
 
-Open **http://localhost:5173** in your browser. 🎉
-
----
-
-## 🤖 AI Features — How They Work
-
-### Resume Upload & Skill Sync
-1. Candidate uploads a PDF resume from their profile page.
-2. Backend extracts text using `pdf-parse`, parses out all recognizable technical skills, deduplicates them (e.g. `node` and `node js` become one entry), and saves them directly to `user.profile.skills` in MongoDB.
-3. The Redux store is updated instantly — no page refresh needed.
-
-### AI Match Score
-- Recruiter opens the applicants table and sees an **AI Match %** for each candidate.
-- The backend compares the candidate's verified resume skills against the job's `requirements` array and calculates a percentage with `matchedSkills` and `missingSkills` arrays.
-
-### RAG Recruiter Assistant (Ask AI)
-- Recruiter opens the **Ask AI Assistant** drawer and types any question.
-- If a `GEMINI_API_KEY` is set, it calls Gemini directly with all candidate and job context.
-- Without a key, a built-in grounded engine handles: missing skills, candidate profiles & drawbacks, side-by-side comparisons, rankings, and specific skill queries.
-
-### AI Interview Generator
-- Recruiter clicks **Generate AI Interview** for a specific candidate.
-- Gemini (or the built-in engine) generates 5 tailored technical + behavioral questions with golden answer criteria based on the candidate's skills and job requirements.
-- Questions are **internal only** — visible only to the recruiter, not the applicant.
-
-### AI Hiring Report
-- Recruiter clicks **AI Hiring Report** for a candidate.
-- Generates a differentiated scorecard with: Technical Score, Problem Solving, Domain Fit, Culture Fit, Strengths, Skill Gaps, and a Hiring Tier recommendation.
-- Each report is unique per candidate based on their actual resume, match data, and interview performance.
+2. Start the Vite development server:
+   ```bash
+   npm run dev
+   ```
+   *The frontend will be accessible at `http://localhost:5173`.*
 
 ---
 
-## 🔐 Auth Flows
+### Step 4: (Optional) Run the Python AI Microservice
 
-**Register → Verify → Auto Login**
-1. Fill the register form → backend creates an unverified account and emails a 6-digit OTP.
-2. Enter the OTP on the **Verify Email** page.
-3. On success you are **logged in automatically**.
+If you wish to use the dedicated Python embeddings and semantic analysis microservice:
 
-**Forgot Password (from Login)**
-1. Click **"Forgot Password?"** → enter your email → receive OTP → enter OTP + new password.
+1. Open a new terminal:
+   ```bash
+   cd ai-service
+   python -m venv venv
+   
+   # Windows
+   venv\Scripts\activate
+   # macOS/Linux
+   source venv/bin/activate
+   ```
 
-**Change Password (from Profile)**
-1. Open Profile → Edit → **Change Password** → OTP sent to email → enter OTP + new password.
+2. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. Configure `.env` in `ai-service/`:
+   ```env
+   GEMINI_API_KEY=your_gemini_api_key
+   PORT=8000
+   ```
+
+4. Run the microservice:
+   ```bash
+   python main.py
+   # Microservice will run at http://localhost:8000
+   ```
 
 ---
 
-## 🌐 Main API Endpoints
+## 📡 API Reference
 
 Base URL: `http://localhost:5011`
 
-### User (`/api/user`)
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/register` | Register + send OTP |
-| POST | `/verify-otp` | Verify email OTP (auto-login) |
-| POST | `/resend-otp` | Resend signup OTP |
-| POST | `/forgot-password` | Send password-reset OTP |
-| POST | `/reset-password` | Reset password with OTP |
-| POST | `/login` | Login |
-| POST | `/logout` | Logout |
-| POST | `/profile/update` | Update profile (auth) |
+### Authentication & User (`/api/user`)
+| Method | Endpoint | Access | Description |
+|:---|:---|:---|:---|
+| `POST` | `/register` | Public | Register new user and dispatch 6-digit OTP |
+| `POST` | `/verify-otp` | Public | Verify signup OTP and auto-login |
+| `POST` | `/resend-otp` | Public | Resend OTP code |
+| `POST` | `/forgot-password` | Public | Request password-reset OTP |
+| `POST` | `/reset-password` | Public | Reset password using OTP verification |
+| `POST` | `/login` | Public | Authenticate user & set JWT cookie |
+| `POST` | `/logout` | Public | Clear session & cookie |
+| `POST` | `/profile/update` | Authenticated | Update user bio, skills, and resume |
 
 ### Jobs (`/api/job`)
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/get` | List/search all jobs (public) |
-| GET | `/get/:id` | Get single job (public) |
-| POST | `/post` | Post a job (recruiter, auth) |
-| GET | `/getadminjobs` | Recruiter's jobs (auth) |
+| Method | Endpoint | Access | Description |
+|:---|:---|:---|:---|
+| `GET` | `/get` | Public | Search and list all active job postings |
+| `GET` | `/get/:id` | Public | Get single job details (with application state) |
+| `POST` | `/post` | Recruiter | Post a new job listing |
+| `GET` | `/getadminjobs` | Recruiter | List all jobs created by current recruiter |
+| `PUT` | `/update/:id` | Recruiter | Update job details |
+| `GET` | `/recommendations/:id` | Public | Get recommended jobs related to a job ID |
 
-### Applications (`/api/application`)
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/apply/:id` | Apply to a job (student, auth) |
-| GET | `/get` | Get applied jobs (student, auth) |
-| GET | `/applicants/:id` | Get applicants for a job (recruiter, auth) |
-| POST | `/status/:id/update` | Accept / reject applicant (recruiter, auth) |
+### Companies (`/api/company`)
+| Method | Endpoint | Access | Description |
+|:---|:---|:---|:---|
+| `POST` | `/register` | Recruiter | Register a new company |
+| `GET` | `/get` | Recruiter | Retrieve companies registered by current recruiter |
+| `GET` | `/get/:id` | Recruiter | Retrieve single company by ID |
+| `PUT` | `/update/:id` | Recruiter | Update company profile and logo |
 
-### AI (`/api/ai`)
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/resume/upload` | Upload and analyze resume |
-| GET | `/resume/analysis` | Get resume analysis |
-| GET | `/match/job/:jobId` | Get job match score (student) |
-| GET | `/match/candidates/:jobId` | Get all candidate match scores (recruiter) |
-| POST | `/assistant/chat` | RAG recruiter assistant chat |
-| GET | `/assistant/history` | Get chat history |
-| DELETE | `/assistant/history` | Clear chat history |
-| POST | `/interview/generate` | Generate AI interview questions |
-| GET | `/interview/:id` | Get an interview |
-| POST | `/interview/:id/submit` | Submit candidate answers |
-| POST | `/interview/:id/evaluate` | Evaluate interview answers |
-| POST | `/report/generate` | Generate AI hiring report |
-| GET | `/report/application/:appId` | Get report by application |
+### Applications & ATS (`/api/application`)
+| Method | Endpoint | Access | Description |
+|:---|:---|:---|:---|
+| `GET` | `/apply/:id` | Student | Submit an application for a job |
+| `GET` | `/get` | Student | Get all jobs applied by the current student |
+| `GET` | `/:id/applicants` | Recruiter | Get all applicants for a specific job listing |
+| `POST` | `/status/:id/update` | Recruiter | Update application status (`Accepted` / `Rejected`) |
+
+### AI Suite (`/api/ai`)
+| Method | Endpoint | Access | Description |
+|:---|:---|:---|:---|
+| `POST` | `/resume/upload` | Student | Upload resume PDF, extract and sync skills |
+| `GET` | `/resume/analysis` | Student | Fetch extracted resume analysis |
+| `GET` | `/match/job/:jobId` | Student | Calculate match percentage against job requirements |
+| `GET` | `/match/candidates/:jobId` | Recruiter | Calculate match percentages for all job applicants |
+| `POST` | `/student/chat` | Student | Query the Student AI Career Coach |
+| `GET` | `/student/history` | Student | Retrieve student AI chat conversation history |
+| `DELETE` | `/student/history` | Student | Clear student AI chat conversation history |
+| `POST` | `/assistant/chat` | Recruiter | Query the Recruiter RAG Assistant |
+| `GET` | `/assistant/history` | Recruiter | Retrieve recruiter AI assistant chat history |
+| `DELETE` | `/assistant/history` | Recruiter | Clear recruiter AI assistant chat history |
+| `POST` | `/interview/generate` | Recruiter | Generate tailored candidate interview questions |
+| `GET` | `/interview/job/:jobId` | Recruiter | Get all generated interviews for a job |
+| `GET` | `/interview/:id` | Recruiter | Fetch interview details |
+| `POST` | `/interview/:id/submit` | Recruiter | Submit candidate answers for scoring |
+| `POST` | `/interview/:id/evaluate` | Recruiter | Run AI evaluation on candidate answers |
+| `POST` | `/report/generate` | Recruiter | Generate complete candidate hiring scorecard |
+| `GET` | `/report/application/:applicationId` | Recruiter | Get hiring report by application ID |
+| `GET` | `/report/:id` | Recruiter | Fetch hiring report by report ID |
+| `POST` | `/report/:id/decide` | Recruiter | Record hiring decision on a report |
 
 ---
 
-## 🧰 Available Scripts
+## 💡 Troubleshooting & FAQ
 
-**Backend**
-- `npm run dev` — start with nodemon
-
-**Frontend**
-- `npm run dev` — start dev server
-- `npm run build` — production build
-- `npm run lint` — run ESLint
-
----
-
-## 🩺 Troubleshooting
-
-- **CORS error** — make sure your frontend URL is in `CORS_ORIGIN` in `.env`, then restart the backend.
-- **OTP email not sending** — check Gmail OAuth2 credentials (`CLIENT_ID`, `CLIENT_SECRET`, `REFRESH_TOKEN`, `EMAIL_USER`).
-- **AI features returning errors** — the built-in fallback engine works without any API key. For Gemini-powered responses, add your key to `GEMINI_API_KEY` in `.env`.
-- **Resume skills not syncing** — only PDF resumes are supported for skill extraction. Cloud storage URLs (Google Drive, Cloudinary) are fetched and parsed automatically.
-- **`.env` changes not applied** — restart the backend (nodemon does not reload `.env` automatically).
+- **CORS Error**: Ensure `CORS_ORIGIN` in `Backend/.env` exactly matches your frontend URL (default: `http://localhost:5173`) without a trailing slash.
+- **Gmail OTP Not Sending**: Verify that your Google Cloud OAuth2 credentials (`CLIENT_ID`, `CLIENT_SECRET`, and `REFRESH_TOKEN`) have the Gmail API enabled and permissions granted.
+- **AI Running Without API Key**: The platform includes an intelligent built-in fallback engine (`aiFallbackService.js`). You can test all features (Student Coach, Recruiter Assistant, Matching, Interviews, Reports) without providing a Gemini key. Adding `GEMINI_API_KEY` activates dynamic Gemini 1.5 Flash generation.
+- **Resume Skills Extraction**: Skill parsing expects standard PDF documents. Cloudinary or Google Drive links are automatically fetched and analyzed.
 
 ---
 
 ## 👤 Author
 
-**Mohith Annadatha** — [github.com/mohithannadata12390](https://github.com/mohithannadata12390)
+**Mohith Annadatha**  
+- GitHub: [@mohithannadata12390](https://github.com/mohithannadata12390)
+- Repository: [job-portal](https://github.com/mohithannadata12390/job-portal)
 
 ---
 
-> Built with the MERN stack + Google Gemini AI. Contributions and suggestions are welcome!
+## 📄 License
+
+This project is licensed under the MIT License.

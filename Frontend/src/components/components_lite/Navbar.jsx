@@ -3,12 +3,13 @@ import { Link, useNavigate } from "react-router-dom";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { Avatar, AvatarImage, AvatarFallback } from "../ui/avatar";
 import { Button } from "../ui/button";
-import { LogOut, User2, Menu, X } from "lucide-react";
+import { LogOut, User2, Menu, X, Sparkles, Bot } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner";
 import axios from "axios"; // Import axios
 import { persistor, RESET_STORE } from "@/redux/store";
 import { USER_API_ENDPOINT } from "@/utils/data";
+import StudentAIAssistantDrawer from "./StudentAIAssistantDrawer";
 
 const Navbar = () => {
   const { user } = useSelector((store) => store.auth);
@@ -16,6 +17,7 @@ const Navbar = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isAICoachOpen, setIsAICoachOpen] = useState(false);
 
   const logoutHandler = async () => {
     try {
@@ -94,6 +96,7 @@ const Navbar = () => {
                     )}
                   </Link>
                 </li>
+
               </>
             )}
           </ul>
@@ -198,6 +201,19 @@ const Navbar = () => {
                     )}
                   </Link>
                 </li>
+                <li>
+                  <button
+                    onClick={() => {
+                      setIsAICoachOpen(true);
+                      setIsMenuOpen(false);
+                    }}
+                    className="py-2 text-purple-700 hover:text-[#FA4F09] flex items-center gap-2 font-semibold w-full text-left"
+                  >
+                    <Bot className="w-4 h-4 text-yellow-500" />
+                    <span>Ask AI Assistant</span>
+                    <Sparkles className="w-3.5 h-3.5 text-yellow-500" />
+                  </button>
+                </li>
               </>
             )}
             
@@ -241,6 +257,36 @@ const Navbar = () => {
           </ul>
         </div>
       )}
+
+      {/* Floating Circular AI Bot Button (Student / Candidate) */}
+      {user && user.role !== "Recruiter" && (
+        <button
+          onClick={() => setIsAICoachOpen(true)}
+          title="Ask AI Assistant"
+          className="fixed bottom-6 right-6 z-40 group"
+        >
+          {/* Outer glowing ring */}
+          <span className="absolute inset-0 rounded-full bg-gradient-to-br from-purple-500 via-indigo-500 to-purple-700 opacity-60 blur-md scale-110 group-hover:opacity-90 group-hover:scale-125 transition-all duration-300" />
+          {/* Middle ring */}
+          <span className="relative flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-purple-700 via-indigo-600 to-purple-900 shadow-xl group-hover:shadow-purple-500/60 group-hover:shadow-2xl transition-all duration-300 ring-4 ring-white/30 group-hover:ring-white/50">
+            {/* Inner white circle */}
+            <span className="flex items-center justify-center w-11 h-11 rounded-full bg-white shadow-inner">
+              <Bot className="h-6 w-6 text-indigo-700 group-hover:text-purple-700 transition-colors duration-200" />
+            </span>
+          </span>
+          {/* Tooltip label */}
+          <span className="absolute bottom-full right-0 mb-2 whitespace-nowrap bg-gray-900 text-white text-xs font-medium px-2.5 py-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none shadow-lg">
+            AI Career Coach
+          </span>
+        </button>
+      )}
+
+      {/* Student AI Assistant Drawer Modal */}
+      <StudentAIAssistantDrawer
+        isOpen={isAICoachOpen}
+        onClose={() => setIsAICoachOpen(false)}
+        userName={user?.fullname}
+      />
     </div>
   );
 };

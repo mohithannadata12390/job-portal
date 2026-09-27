@@ -9,6 +9,9 @@ import {
   assistantChat,
   getAssistantHistory,
   clearAssistantHistory,
+  studentAssistantChat,
+  getStudentAssistantHistory,
+  clearStudentAssistantHistory,
   generateInterview,
   getInterview,
   submitInterview,
@@ -30,10 +33,15 @@ router.get("/resume/analysis", isAuthenticated, getResumeAnalysis);
 router.get("/match/job/:jobId", isAuthenticated, getJobMatch);
 router.get("/match/candidates/:jobId", isAuthenticated, getCandidateMatches);
 
-// ─── RAG Assistant (Feature 3) ────────────────────────────────────
+// ─── Recruiter RAG Assistant (Feature 3) ───────────────────────────
 router.post("/assistant/chat", isAuthenticated, assistantChat);
 router.get("/assistant/history", isAuthenticated, getAssistantHistory);
 router.delete("/assistant/history", isAuthenticated, clearAssistantHistory);
+
+// ─── Student AI Career Coach ───────────────────────────────────────
+router.post("/student/chat", isAuthenticated, studentAssistantChat);
+router.get("/student/history", isAuthenticated, getStudentAssistantHistory);
+router.delete("/student/history", isAuthenticated, clearStudentAssistantHistory);
 
 // ─── Interview (Feature 4) ───────────────────────────────────────
 router.post("/interview/generate", isAuthenticated, generateInterview);

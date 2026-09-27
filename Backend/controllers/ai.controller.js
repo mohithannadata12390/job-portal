@@ -6,6 +6,7 @@ import { CandidateMatch } from "../models/candidateMatch.model.js";
 import { Interview } from "../models/interview.model.js";
 import { AIReport } from "../models/aiReport.model.js";
 import { RAGConversation } from "../models/ragConversation.model.js";
+import { StudentConversation } from "../models/studentConversation.model.js";
 import getDataUri from "../utils/datauri.js";
 import cloudinary from "../utils/cloud.js";
 import {
@@ -16,6 +17,7 @@ import {
 } from "../utils/resumeExtractor.js";
 import {
   generateGroundedAssistantAnswer,
+  generateStudentAssistantAnswer,
   generateCustomInterviewQuestions,
   generateCandidateReport,
   evaluateCandidateAnswers,
@@ -600,6 +602,12 @@ export const assistantChat = async (req, res) => {
     let conversation = await RAGConversation.findOne({ recruiter: recruiterId });
     const conversationHistory = conversation?.messages || [];
 
+    const recruiterInfo = {
+      name: recruiter.fullname,
+      email: recruiter.email,
+      role: recruiter.role,
+    };
+
     let answerText = "";
     let sourcesList = [];
 
@@ -610,8 +618,14 @@ export const assistantChat = async (req, res) => {
         candidateData,
         jobData,
         conversationHistory: conversationHistory.slice(-10),
+        recruiterInfo,
       });
-      if (aiResult && aiResult.success && aiResult.answer) {
+      if (
+        aiResult &&
+        aiResult.success &&
+        aiResult.answer &&
+        !aiResult.answer.toLowerCase().includes("encountered an error processing your question")
+      ) {
         answerText = aiResult.answer;
         sourcesList = aiResult.sourcesUsed || [];
       }
@@ -626,6 +640,7 @@ export const assistantChat = async (req, res) => {
         candidateData,
         jobData,
         conversationHistory,
+        recruiterInfo,
       });
       answerText = fallbackResult.answer;
       sourcesList = fallbackResult.sourcesUsed || [];
@@ -702,6 +717,172 @@ export const clearAssistantHistory = async (req, res) => {
     console.error("clearAssistantHistory error:", error);
     return res.status(500).json({
       message: "Server error clearing history",
+      success: false,
+    });
+  }
+};
+
+/**
+ * POST /api/ai/student/chat
+ * Student sends a question, gets personalized career coaching, job recommendations & prep.
+ */
+export const studentAssistantChat = async (req, res) => {
+  try {
+    const studentId = req.id;
+    const { message } = req.body;
+
+    if (!message || !message.trim()) {
+      return res.status(400).json({
+        message: "Please enter a message.",
+        success: false,
+      });
+    }
+
+    const student = await User.findById(studentId);
+    if (!student) {
+      return res.status(404).json({
+        message: "User not found.",
+        success: false,
+      });
+    }
+
+    // 1. Fetch student's resume analysis if available
+    const analysis = await ResumeAnalysis.findOne({ user: studentId });
+
+    const studentData = {
+      name: student.fullname,
+      email: student.email,
+      bio: student.profile?.bio || "",
+      skills: analysis?.skills?.length ? analysis.skills : (student.profile?.skills || []),
+      suggestedRoles: analysis?.suggestedRoles || [],
+      experience: analysis?.experience || [],
+      education: analysis?.education || [],
+      resumeSummary: analysis?.summary || (student.profile?.bio || ""),
+    };
+
+    // 2. Fetch active jobs from portal (limit to 15 most recent for context)
+    const activeJobs = await Job.find({}).populate("company", "name").sort({ createdAt: -1 }).limit(15);
+    const jobData = activeJobs.map((j) => ({
+      title: j.title,
+      company: j.company?.name || "Hiring Company",
+      location: j.location,
+      jobType: j.jobType,
+      salary: j.salary,
+      requirements: j.requirements || [],
+      description: j.description ? j.description.slice(0, 300) : "",
+    }));
+
+    // 3. Conversation history
+    let conversation = await StudentConversation.findOne({ student: studentId });
+    const conversationHistory = conversation?.messages || [];
+
+    let answerText = "";
+    let sourcesList = [];
+
+    // 4. Try Python AI microservice first
+    try {
+      const aiResult = await callAI("/student-assistant-query", {
+        question: message,
+        studentData,
+        jobData,
+        conversationHistory: conversationHistory.slice(-10),
+      });
+      if (
+        aiResult &&
+        aiResult.success &&
+        aiResult.answer &&
+        !aiResult.answer.toLowerCase().includes("encountered an issue")
+      ) {
+        answerText = aiResult.answer;
+        sourcesList = aiResult.sourcesUsed || [];
+      }
+    } catch (e) {
+      console.warn("Python AI student-assistant-query failed:", e.message);
+    }
+
+    // 5. Fallback: use Node direct grounded assistant engine
+    if (!answerText) {
+      const fallbackResult = await generateStudentAssistantAnswer({
+        question: message,
+        studentData,
+        jobData,
+        conversationHistory,
+      });
+      answerText = fallbackResult.answer;
+      sourcesList = fallbackResult.sourcesUsed || [];
+    }
+
+    // 6. Save message history
+    const userMessage = { role: "user", content: message, sources: [], timestamp: new Date() };
+    const assistantMessage = {
+      role: "assistant",
+      content: answerText,
+      sources: sourcesList,
+      timestamp: new Date(),
+    };
+
+    if (!conversation) {
+      conversation = new StudentConversation({
+        student: studentId,
+        messages: [userMessage, assistantMessage],
+      });
+    } else {
+      conversation.messages.push(userMessage, assistantMessage);
+    }
+    await conversation.save();
+
+    return res.status(200).json({
+      success: true,
+      answer: answerText,
+      sources: sourcesList,
+    });
+  } catch (error) {
+    console.error("studentAssistantChat error:", error);
+    return res.status(500).json({
+      message: "Server error processing student chat",
+      success: false,
+    });
+  }
+};
+
+/**
+ * GET /api/ai/student/history
+ * Get conversation history for the current student.
+ */
+export const getStudentAssistantHistory = async (req, res) => {
+  try {
+    const conversation = await StudentConversation.findOne({ student: req.id });
+    return res.status(200).json({
+      success: true,
+      messages: conversation?.messages || [],
+    });
+  } catch (error) {
+    console.error("getStudentAssistantHistory error:", error);
+    return res.status(500).json({
+      message: "Server error fetching student chat history",
+      success: false,
+    });
+  }
+};
+
+/**
+ * DELETE /api/ai/student/history
+ * Clear conversation history for the current student.
+ */
+export const clearStudentAssistantHistory = async (req, res) => {
+  try {
+    await StudentConversation.findOneAndUpdate(
+      { student: req.id },
+      { messages: [] }
+    );
+    return res.status(200).json({
+      success: true,
+      message: "Student chat history cleared.",
+    });
+  } catch (error) {
+    console.error("clearStudentAssistantHistory error:", error);
+    return res.status(500).json({
+      message: "Server error clearing student chat history",
       success: false,
     });
   }

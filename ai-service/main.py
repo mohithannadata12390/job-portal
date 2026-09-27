@@ -71,6 +71,14 @@ class AssistantQueryRequest(BaseModel):
     candidateData: list[dict]
     jobData: list[dict]
     conversationHistory: list[dict] | None = None
+    recruiterInfo: dict | None = None
+
+
+class StudentAssistantQueryRequest(BaseModel):
+    question: str
+    studentData: dict
+    jobData: list[dict]
+    conversationHistory: list[dict] | None = None
 
 
 class GenerateInterviewRequest(BaseModel):
@@ -140,7 +148,7 @@ async def compute_match(req: ComputeMatchRequest):
 @app.post("/assistant-query")
 async def assistant_query(req: AssistantQueryRequest):
     """
-    Answer a recruiter's question using RAG over their candidate data.
+    Answer a recruiter's question using RAG over their candidate data or general AI response.
     """
     from services.rag_service import assistant_query as _query
 
@@ -150,11 +158,32 @@ async def assistant_query(req: AssistantQueryRequest):
             candidate_data=req.candidateData,
             job_data=req.jobData,
             conversation_history=req.conversationHistory,
+            recruiter_info=req.recruiterInfo,
         )
         return {"success": True, **result}
     except Exception as e:
         logger.error("assistant-query error: %s", e)
         raise HTTPException(status_code=500, detail="Failed to process query")
+
+
+@app.post("/student-assistant-query")
+async def student_assistant_query(req: StudentAssistantQueryRequest):
+    """
+    Answer a student's question using RAG over their profile & active jobs + AI Career Coach.
+    """
+    from services.rag_service import student_assistant_query as _student_query
+
+    try:
+        result = await _student_query(
+            question=req.question,
+            student_data=req.studentData,
+            job_data=req.jobData,
+            conversation_history=req.conversationHistory,
+        )
+        return {"success": True, **result}
+    except Exception as e:
+        logger.error("student-assistant-query error: %s", e)
+        raise HTTPException(status_code=500, detail="Failed to process student assistant query")
 
 
 @app.post("/generate-interview")

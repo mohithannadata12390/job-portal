@@ -31,35 +31,56 @@ class LLMService:
             )
 
         self.client = genai.Client(api_key=api_key)
-        self.model = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
-        logger.info("LLMService initialized with model=%s", self.model)
+        self.model = os.getenv("GEMINI_MODEL", "gemini-flash-lite-latest")
+        self.candidate_models = list(dict.fromkeys([
+            self.model,
+            "gemini-flash-lite-latest",
+            "gemini-flash-latest",
+            "gemini-3.1-flash-lite",
+            "gemini-2.5-flash-lite",
+        ]))
+        logger.info("LLMService initialized with primary model=%s, candidates=%s", self.model, self.candidate_models)
 
     async def generate(self, prompt: str, system_prompt: str | None = None) -> str:
         """
         Send a prompt to the LLM and return the text response.
-
-        Args:
-            prompt: The user/main prompt.
-            system_prompt: Optional system-level instruction.
-
-        Returns:
-            The model's text response.
+        Automatically tries fallback models if the primary model is busy or unavailable.
         """
-        try:
-            contents = []
-            if system_prompt:
-                contents.append({"role": "user", "parts": [{"text": system_prompt}]})
-                contents.append({"role": "model", "parts": [{"text": "Understood. I will follow these instructions."}]})
-            contents.append({"role": "user", "parts": [{"text": prompt}]})
+        from google.genai import types
 
-            response = self.client.models.generate_content(
-                model=self.model,
-                contents=contents,
-            )
-            return response.text or ""
-        except Exception as e:
-            logger.error("LLM generate error: %s", e)
-            raise
+        config = None
+        if system_prompt:
+            try:
+                config = types.GenerateContentConfig(system_instruction=system_prompt)
+            except Exception:
+                config = None
+
+        last_err = None
+        for m in self.candidate_models:
+            try:
+                if config:
+                    response = self.client.models.generate_content(
+                        model=m,
+                        contents=prompt,
+                        config=config,
+                    )
+                else:
+                    contents = []
+                    if system_prompt:
+                        contents.append({"role": "user", "parts": [{"text": system_prompt}]})
+                        contents.append({"role": "model", "parts": [{"text": "Understood. I will follow these instructions."}]})
+                    contents.append({"role": "user", "parts": [{"text": prompt}]})
+                    response = self.client.models.generate_content(
+                        model=m,
+                        contents=contents,
+                    )
+                return response.text or ""
+            except Exception as e:
+                last_err = e
+                logger.warning("LLM generate failed with model %s: %s. Trying next candidate...", m, e)
+
+        logger.error("All LLM candidate models failed. Last error: %s", last_err)
+        raise last_err
 
     async def generate_json(self, prompt: str, system_prompt: str | None = None) -> dict:
         """

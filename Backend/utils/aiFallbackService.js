@@ -18,80 +18,168 @@ export const callGeminiDirect = async (prompt, temperature = 0.3) => {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return null;
 
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
+  const modelsToTry = [
+    process.env.GEMINI_MODEL,
+    "gemini-flash-lite-latest",
+    "gemini-flash-latest",
+    "gemini-3.1-flash-lite",
+  ].filter(Boolean);
 
-    const modelName = process.env.GEMINI_MODEL || "gemini-1.5-flash";
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+  const uniqueModels = [...new Set(modelsToTry)];
 
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature,
-          maxOutputTokens: 1200,
-        },
-      }),
-      signal: controller.signal,
-    });
-    clearTimeout(timeout);
+  for (const modelName of uniqueModels) {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 12000);
 
-    if (!res.ok) {
-      console.warn("Gemini direct API returned status:", res.status);
-      return null;
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: {
+            temperature,
+            maxOutputTokens: 1200,
+          },
+        }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+
+      if (res.ok) {
+        const data = await res.json();
+        const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (text) return text;
+      } else {
+        console.warn(`Gemini direct model ${modelName} returned status:`, res.status);
+      }
+    } catch (err) {
+      console.warn(`Gemini direct call error on model ${modelName}:`, err.message);
     }
-
-    const data = await res.json();
-    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-    return text || null;
-  } catch (err) {
-    console.warn("Gemini direct call error:", err.message);
-    return null;
   }
+  return null;
 };
 
 /**
- * 1. Generates a grounded, natural RAG Assistant answer about candidates and jobs.
+ * 1. Generates an intelligent, grounded RAG Assistant answer or ChatGPT-style general answer.
  */
 export const generateGroundedAssistantAnswer = async ({
   question = "",
   candidateData = [],
   jobData = [],
   conversationHistory = [],
+  recruiterInfo = null,
 }) => {
   // If Gemini API Key is available, ask Gemini directly with full grounded context
-  const geminiPrompt = `You are an elite, highly perceptive technical recruiting advisor assisting a hiring manager.
-Context:
+  const geminiPrompt = `You are an intelligent, versatile AI Assistant built into a modern Job & Recruitment Portal. You work like ChatGPT with specialized access to the recruiter's candidate and job database (RAG).
+
+Recruiter Context:
+${JSON.stringify(recruiterInfo || { role: "Recruiter" }, null, 2)}
+
 Job Postings:
 ${JSON.stringify(jobData, null, 2)}
 
-Candidates who applied:
+Candidates Applied:
 ${JSON.stringify(candidateData, null, 2)}
 
-Recruiter Question: "${question}"
+User Question: "${question}"
 
-Instructions:
-1. Answer the question directly and concisely with natural, professional tone.
-2. Be specific: cite candidate names, their exact match scores, matched skills, missing skills, education, and specific projects.
-3. If asked about missing skills or drawbacks, specify exactly who is missing what and who has zero missing skills.
-4. Format your response cleanly with markdown bullet points. Do not give generic corporate boilerplate.`;
+DECIDE DYNAMICALLY HOW TO ANSWER BASED ON THE USER'S INTENT:
+1. RECRUITMENT & APPLICANT QUERIES (RAG Mode):
+   - When asked about candidates, applicants, skills, scores, comparisons, gaps, or jobs:
+   - Ground answers in the provided data. Cite candidate names, exact match scores, verified skills, and missing requirements.
+   - Do NOT invent candidate info not in the data.
+
+2. GENERAL, CONVERSATIONAL & TECHNICAL QUESTIONS (ChatGPT Mode):
+   - For greetings (e.g. "hi", "how are you"), identity questions ("who are you", "who am I"), conversational chat, coding/tech concepts ("what is React?", "difference between SQL and NoSQL"), or recruitment advice:
+   - Answer naturally, helpfully, engagingly, and fluently like ChatGPT.
+   - Never say "I don't have enough data" for general or conceptual questions.
+   - When asked "who are you", introduce yourself as the Job Portal's AI Assistant.
+   - When asked "who am I", use the recruiter's profile data (${recruiterInfo?.name || "Recruiter"}).
+
+3. DRAFTING & OUTREACH:
+   - If asked to write an email, invitation, job spec, or outreach, craft polished, professional text.
+
+Format cleanly with Markdown with headings and bullet points where helpful.`;
 
   const geminiAnswer = await callGeminiDirect(geminiPrompt, 0.4);
   if (geminiAnswer) {
+    const candidateNames = candidateData.map((c) => c.name);
+    const sourcesUsed = candidateNames.filter((name) =>
+      geminiAnswer.toLowerCase().includes(name.toLowerCase())
+    );
     return {
       answer: geminiAnswer,
-      sourcesUsed: candidateData.map((c) => c.name),
+      sourcesUsed,
     };
   }
 
-  // --- Grounded Natural Query Engine ---
+  // --- Grounded Natural Query Engine (Local Fallback) ---
   const q = question.toLowerCase().trim();
   const candidateNames = candidateData.map((c) => c.name);
   const targetJob = jobData[0] || {};
   const jobRequirements = (targetJob.requirements || ["react", "node", "javascript"]).map((r) => r.toLowerCase().trim());
+
+  // Conversational Intent: Identity & Greetings
+  if (q.includes("who are you") || q.includes("what are you") || q.includes("what can you do")) {
+    return {
+      answer: `Hello! I am your **AI Recruitment & Hiring Assistant** for this Job Portal.
+
+I work like **ChatGPT with specialized access to your candidate and job database**. Here is what I can do for you:
+• **Candidate Analysis & RAG:** Compare applicants, inspect skills, identify missing requirements, and view AI match scores.
+• **Hiring Advice & Screenings:** Suggest candidate rankings, technical interview questions, and assess drawbacks.
+• **Drafting & Outreach:** Write professional candidate emails, interview invitations, or job descriptions.
+• **General & Technical Assistance:** Answer questions on tech stacks (React, Node, Python, Cloud), engineering concepts, or general topics.
+
+Feel free to ask me anything!`,
+      sourcesUsed: [],
+    };
+  }
+
+  if (q.includes("who am i") || q.includes("who am i?")) {
+    const rName = recruiterInfo?.name || "Recruiter";
+    const rEmail = recruiterInfo?.email ? ` (${recruiterInfo.email})` : "";
+    const rRole = recruiterInfo?.role || "Recruiter";
+    return {
+      answer: `You are logged in as **${rName}**${rEmail}, registered as a **${rRole}** managing recruitment for **${targetJob.title || "your active job postings"}**.`,
+      sourcesUsed: [],
+    };
+  }
+
+  if (
+    q === "hi" ||
+    q === "hello" ||
+    q === "hey" ||
+    q.startsWith("hi ") ||
+    q.startsWith("hello ") ||
+    q.includes("how are you") ||
+    q.includes("good morning") ||
+    q.includes("good afternoon") ||
+    q.includes("good evening")
+  ) {
+    const rName = recruiterInfo?.name ? ` ${recruiterInfo.name}` : "";
+    return {
+      answer: `Hello${rName}! I'm doing great, thank you!
+
+I'm ready to assist you today. You can ask me to:
+• Evaluate or rank your candidates for **${targetJob.title || "your postings"}**
+• Analyze skill gaps or compare specific applicants
+• Draft interview invites or candidate communications
+• Answer any technical, coding, or general questions
+
+How can I help you today?`,
+      sourcesUsed: [],
+    };
+  }
+
+  if (q.includes("thank") || q === "thanks") {
+    return {
+      answer: `You're very welcome! Let me know if there is anything else I can help you with regarding your candidates or general questions.`,
+      sourcesUsed: [],
+    };
+  }
 
   // Intent 1: Candidate-specific deep dive (e.g. "tell me about Tanuj", "who is Mohith", "Faf Du drawbacks", "Navadeep")
   const targetedCandidate = candidateData.find((c) => {
@@ -302,25 +390,51 @@ Instructions:
     }
   }
 
-  // Default: Comprehensive, natural recruiter overview
-  let reply = `### 📋 Applicants Overview for **${targetJob.title || "Software Developer"}**\n\n`;
-  reply += `We are evaluating **${candidateData.length} applicants** against the core stack: \`${jobRequirements.join(", ")}\`.\n\n`;
+  // Check if user specifically requested an overview, applicant list, or summary
+  const isOverviewRequest =
+    q.includes("overview") ||
+    q.includes("summary") ||
+    q.includes("applicant") ||
+    q.includes("candidate") ||
+    q.includes("who applied") ||
+    q.includes("list") ||
+    q.includes("everyone") ||
+    q.includes("all");
 
-  candidateData.forEach((c) => {
-    const s = Math.max(...(c.matchScores?.map((m) => m.score) || [0]), 0);
-    const missing = c.missingSkills && c.missingSkills.length > 0 ? c.missingSkills.join(", ") : "None";
-    reply += `• **${c.name}** (Match: **${s}%**)\n`;
-    reply += `  - **Top Skills:** ${(c.skills || []).slice(0, 6).join(", ")}\n`;
-    reply += `  - **Missing Skills:** ${missing === "None" ? "✅ None (100% Match)" : `⚠️ ${missing}`}\n\n`;
-  });
+  if (isOverviewRequest || candidateData.length === 0) {
+    let reply = `### 📋 Applicants Overview for **${targetJob.title || "Software Developer"}**\n\n`;
+    reply += `We are evaluating **${candidateData.length} applicants** against the core stack: \`${jobRequirements.join(", ")}\`.\n\n`;
 
-  reply += `💡 *Ask me anything about these candidates, such as:*\n`;
-  reply += `- *"What are the missing skills?"*\n`;
-  reply += `- *"Compare Tanuj and Mohith"*\n`;
-  reply += `- *"What are Faf Du's drawbacks?"*\n`;
-  reply += `- *"Who is the best fit for this role?"*`;
+    candidateData.forEach((c) => {
+      const s = Math.max(...(c.matchScores?.map((m) => m.score) || [0]), 0);
+      const missing = c.missingSkills && c.missingSkills.length > 0 ? c.missingSkills.join(", ") : "None";
+      reply += `• **${c.name}** (Match: **${s}%**)\n`;
+      reply += `  - **Top Skills:** ${(c.skills || []).slice(0, 6).join(", ")}\n`;
+      reply += `  - **Missing Skills:** ${missing === "None" ? "✅ None (100% Match)" : `⚠️ ${missing}`}\n\n`;
+    });
 
-  return { answer: reply, sourcesUsed: candidateNames };
+    reply += `💡 *Ask me anything about these candidates, such as:*\n`;
+    reply += `- *"What are the missing skills?"*\n`;
+    reply += `- *"Compare Tanuj and Mohith"*\n`;
+    reply += `- *"What are Faf Du's drawbacks?"*\n`;
+    reply += `- *"Who is the best fit for this role?"*`;
+
+    return { answer: reply, sourcesUsed: candidateNames };
+  }
+
+  // Conversational / ChatGPT-style response for unrecognized general inquiries
+  return {
+    answer: `I'm here to help! You can ask me any general, technical, or conversational question — just like ChatGPT — or ask me about your candidates and job postings.
+
+Here are a few things you can ask me:
+• **Candidate Deep Dives:** *"Tell me about Tanuj's projects"*, *"What are Faf Du's drawbacks?"*
+• **Comparisons & Rankings:** *"Who is the best fit for this role?"*, *"Compare all applicants"*
+• **Technical & Conceptual:** *"What is the difference between React and Vue?"*, *"Explain REST vs GraphQL"*
+• **Drafting Communications:** *"Draft an interview invitation email for Mohith"*
+
+Feel free to ask me anything!`,
+    sourcesUsed: [],
+  };
 };
 
 /**
@@ -608,3 +722,254 @@ export const evaluateCandidateAnswers = ({ questionsWithAnswers = [] }) => {
     evaluatedQuestions,
   };
 };
+
+/**
+ * 5. Generates an intelligent, grounded Career Coach answer for Students / Job Seekers.
+ */
+export const generateStudentAssistantAnswer = async ({
+  question = "",
+  studentData = {},
+  jobData = [],
+  conversationHistory = [],
+}) => {
+  const geminiPrompt = `You are an encouraging, expert AI Career Coach and Job Search Mentor built into a modern Job Portal. You work like ChatGPT with specialized access to the student's profile/resume and the active jobs listed on the portal.
+
+Student Profile:
+${JSON.stringify(studentData, null, 2)}
+
+Active Job Postings on Portal:
+${JSON.stringify(jobData, null, 2)}
+
+Student Question: "${question}"
+
+DECIDE DYNAMICALLY HOW TO ASSIST THE STUDENT:
+1. JOB MATCHING & RECOMMENDATIONS (RAG Mode):
+   - When asked which jobs fit them, what jobs to apply for, or their chances for a role:
+   - Analyze the student's skills against the actual Job Postings provided above.
+   - Name the exact job titles and companies available on the portal.
+   - Highlight matched skills and specify if any required skills are missing.
+   - Explain why a role is a strong or moderate match.
+
+2. SKILL GAP & RESUME FEEDBACK (RAG Mode):
+   - When asked how to improve, what skills to learn, or resume feedback:
+   - Identify in-demand technologies in the active job postings that the student hasn't listed yet.
+   - Recommend high-impact projects, certifications, or modern tools to bridge those gaps.
+
+3. MOCK INTERVIEW & PREPARATION (ChatGPT Mode):
+   - When asked to practice interview questions:
+   - Ask realistic technical and behavioral interview questions tailored to their stack and desired role.
+   - Evaluate their answers with constructive feedback and model answer tips.
+
+4. COVER LETTERS & OUTREACH (Drafting Mode):
+   - When asked to draft a cover letter or message to recruiters:
+   - Draft compelling, professional, customized text highlighting their actual skills and passion for the specific job.
+
+5. GENERAL TECH, CODING & CAREER GUIDANCE (ChatGPT Mode):
+   - Answer all technical, coding, algorithmic, or general career questions (e.g., "explain useEffect", "difference between SQL and MongoDB", "how to negotiate salary", "how are you", "who are you").
+   - Never refuse a general or technical question.
+   - When asked "who are you", introduce yourself as the Student's AI Career Coach & Job Mentor.
+   - When asked "who am I", address the student by their name (${studentData?.name || "Student"}) and mention their current profile skills.
+
+Format cleanly with Markdown with headings and bullet points where helpful.`;
+
+  const geminiAnswer = await callGeminiDirect(geminiPrompt, 0.4);
+  if (geminiAnswer) {
+    const jobTitles = jobData.map((j) => j.title).filter(Boolean);
+    const sourcesUsed = jobTitles.filter((title) =>
+      geminiAnswer.toLowerCase().includes(title.toLowerCase())
+    );
+    return {
+      answer: geminiAnswer,
+      sourcesUsed,
+    };
+  }
+
+  // Local Rule Fallback Engine for Student
+  const q = question.toLowerCase().trim();
+  const studentName = studentData.name || "Student";
+  const studentSkills = (studentData.skills || []).map((s) => s.toLowerCase());
+
+  // Conversational Intent: Identity & Greetings
+  if (q.includes("who are you") || q.includes("what are you") || q.includes("what can you do")) {
+    return {
+      answer: `Hello **${studentName}**! I am your **AI Career Coach & Job Search Mentor**.
+
+I work like **ChatGPT with personalized access to your profile, resume skills, and active job openings on this portal**. Here is how I can guide you:
+• 🎯 **Job Matching:** Tell you which open positions match your skills best and calculate your match chances.
+• 📈 **Skill Gap Analysis:** Identify in-demand technologies missing from your profile and recommend what to learn next.
+• 🎙️ **Interview Prep:** Quiz you with realistic technical interview questions on your stack (React, Node, etc.) and give feedback on your answers.
+• ✍️ **Cover Letters & Outreach:** Draft personalized cover letters and messages to hiring managers.
+• 💡 **Tech & Career Advice:** Answer coding questions, explain concepts (e.g. Redux, SQL vs NoSQL), and help you advance your career.
+
+What would you like to explore today?`,
+      sourcesUsed: [],
+    };
+  }
+
+  if (q.includes("who am i") || q.includes("who am i?")) {
+    const skillsList = (studentData.skills || []).slice(0, 8).join(", ") || "None listed yet";
+    return {
+      answer: `You are logged in as **${studentName}** (${studentData.email || ""}).
+
+• **Profile Skills:** \`${skillsList}\`
+• **Target Roles:** ${(studentData.suggestedRoles || []).join(", ") || "Full Stack Developer, Software Engineer"}
+
+I can help you find matching jobs, practice for interviews, or enhance your resume!`,
+      sourcesUsed: [],
+    };
+  }
+
+  if (
+    q === "hi" ||
+    q === "hello" ||
+    q === "hey" ||
+    q.startsWith("hi ") ||
+    q.startsWith("hello ") ||
+    q.includes("how are you")
+  ) {
+    return {
+      answer: `Hello **${studentName}**! I'm doing great, and I'm excited to help you take the next step in your career!
+
+Here are some quick things we can do:
+1. 🎯 Find jobs on the portal that match your skills.
+2. 🔍 Analyze which skills you should add to boost your hiring chances.
+3. 🎙️ Practice mock technical interview questions.
+4. ✍️ Draft a tailored cover letter for a job.
+
+How can I help you today?`,
+      sourcesUsed: [],
+    };
+  }
+
+  // Job Matching Intent
+  if (
+    q.includes("job") ||
+    q.includes("match") ||
+    q.includes("recommend") ||
+    q.includes("apply") ||
+    q.includes("eligible")
+  ) {
+    let reply = `### 🎯 Job Recommendations for **${studentName}**\n\n`;
+    if (!jobData || jobData.length === 0) {
+      reply += `There are currently no active job postings found on the portal, but keep your profile updated with your latest skills!\n`;
+      return { answer: reply, sourcesUsed: [] };
+    }
+
+    const scoredJobs = jobData.map((job) => {
+      const reqs = (job.requirements || []).map((r) => r.toLowerCase().trim());
+      const matched = reqs.filter((r) =>
+        studentSkills.some((s) => s.includes(r) || r.includes(s))
+      );
+      const missing = reqs.filter(
+        (r) => !studentSkills.some((s) => s.includes(r) || r.includes(s))
+      );
+      const score = reqs.length > 0 ? Math.round((matched.length / reqs.length) * 100) : 75;
+      return { job, matched, missing, score };
+    });
+
+    scoredJobs.sort((a, b) => b.score - a.score);
+
+    reply += `Based on your profile skills (\`${(studentData.skills || []).slice(0, 6).join(", ")}\`), here are the best matching opportunities:\n\n`;
+
+    scoredJobs.slice(0, 3).forEach((item, idx) => {
+      reply += `**${idx + 1}. ${item.job.title}** at **${item.job.company || "Hiring Company"}**\n`;
+      reply += `• **Estimated Match:** **${item.score}%**\n`;
+      reply += `• **Location:** ${item.job.location || "Remote / Onsite"} | **Type:** ${item.job.jobType || "Full-time"}\n`;
+      if (item.matched.length > 0) {
+        reply += `• **Your Matched Skills:** \`${item.matched.join(", ")}\`\n`;
+      }
+      if (item.missing.length > 0) {
+        reply += `• **Skills to Learn:** \`${item.missing.join(", ")}\`\n`;
+      }
+      reply += `\n`;
+    });
+
+    reply += `💡 *Tip: Click on the **Jobs** tab in the navigation bar to apply directly!*`;
+    return {
+      answer: reply,
+      sourcesUsed: scoredJobs.slice(0, 3).map((s) => s.job.title),
+    };
+  }
+
+  // Skill Gap & Learning Intent
+  if (
+    q.includes("skill") ||
+    q.includes("gap") ||
+    q.includes("learn") ||
+    q.includes("improve") ||
+    q.includes("resume")
+  ) {
+    let reply = `### 📈 Skill Growth & Resume Optimization Guide\n\n`;
+    reply += `Your current strengths: \`${(studentData.skills || []).join(", ") || "Web development fundamentals"}\`\n\n`;
+
+    // Extract all requirements from active jobs
+    const allReqs = [];
+    jobData.forEach((j) => (j.requirements || []).forEach((r) => allReqs.push(r.toLowerCase())));
+    const inDemand = [...new Set(allReqs)].filter(
+      (req) => !studentSkills.some((s) => s.includes(req) || req.includes(s))
+    );
+
+    if (inDemand.length > 0) {
+      reply += `**Top In-Demand Skills on this Portal You Can Learn:**\n`;
+      inDemand.slice(0, 5).forEach((skill) => {
+        reply += `• **${skill.toUpperCase()}**: Frequently required across active engineering roles. Adding this will significantly improve your match rate.\n`;
+      });
+      reply += `\n`;
+    }
+
+    reply += `**Actionable Recommendations:**\n`;
+    reply += `1. **Build a Full-Stack Project:** Pair your frontend skills with robust backend API services, database indexing, and authentication.\n`;
+    reply += `2. **Update Your Resume:** Quantify your project metrics (e.g. *"reduced load time by 25%"*, *"implemented JWT auth protecting 5+ endpoints"*).\n`;
+    reply += `3. **Upload Your Latest PDF:** Upload your latest resume in the Profile section to let our AI auto-extract all your skills!`;
+
+    return { answer: reply, sourcesUsed: [] };
+  }
+
+  // Interview Practice Intent
+  if (
+    q.includes("interview") ||
+    q.includes("mock") ||
+    q.includes("question") ||
+    q.includes("practice") ||
+    q.includes("test")
+  ) {
+    let reply = `### 🎙️ Mock Technical Interview Practice\n\n`;
+    reply += `Here are **3 technical questions** tailored to your profile stack:\n\n`;
+    reply += `1. **Core Concept:** *How does asynchronous execution and the event loop work in JavaScript, and what is the difference between microtasks and macrotasks?*\n\n`;
+    reply += `2. **Frontend Architecture:** *In React, when should you use \`useCallback\` and \`useMemo\` vs standard functions, and what are the performance trade-offs?*\n\n`;
+    reply += `3. **Backend & Database:** *How do you design a secure RESTful API endpoint with JWT authentication and protect against NoSQL injection or unauthorized access?*\n\n`;
+    reply += `💬 **Try answering any of these questions in our chat, and I'll give you instant, constructive feedback!**`;
+
+    return { answer: reply, sourcesUsed: [] };
+  }
+
+  // Cover Letter Drafting
+  if (q.includes("cover letter") || q.includes("email") || q.includes("draft") || q.includes("message")) {
+    const targetJob = jobData[0] || { title: "Software Developer", company: "the hiring team" };
+    let reply = `### ✍️ Tailored Cover Letter Draft\n\n`;
+    reply += `**Subject:** Application for ${targetJob.title} Position — ${studentName}\n\n`;
+    reply += `Dear Hiring Team at ${targetJob.company},\n\n`;
+    reply += `I am writing to express my strong interest in the **${targetJob.title}** role. With a solid foundation in **${(studentData.skills || ["full stack web development"]).slice(0, 4).join(", ")}**, I am excited about the opportunity to contribute to your engineering initiatives.\n\n`;
+    reply += `In my recent projects, I have focused on building responsive, performant web applications with clean architecture and scalable code. I am eager to bring my problem-solving abilities and continuous learning mindset to your team.\n\n`;
+    reply += `Thank you for your time and consideration. I welcome the opportunity to discuss how my background aligns with your team's goals.\n\n`;
+    reply += `Sincerely,\n**${studentName}**\n${studentData.email || ""}`;
+
+    return { answer: reply, sourcesUsed: [targetJob.title] };
+  }
+
+  // General ChatGPT-style fallback
+  return {
+    answer: `I'm here to support your career journey! You can ask me any technical, coding, or job-search question.
+
+Here are some popular topics you can ask me about:
+• 💼 *"Which jobs on the portal match my resume best?"*
+• 📈 *"What skills should I learn next to stand out?"*
+• 🎙️ *"Give me interview practice questions on React"*
+• ✍️ *"Draft a cover letter for me"*
+• 💡 *"Explain the difference between SQL and MongoDB"*
+
+What's on your mind?`,
+    sourcesUsed: [],
+  };
+};
+

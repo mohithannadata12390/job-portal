@@ -1,5 +1,10 @@
 # Job Portal — AI-Powered MERN Platform
 
+[![Live Demo](https://img.shields.io/badge/Live_Demo-job--portal--updated.onrender.com-46E3B7?style=for-the-badge&logo=render&logoColor=white)](https://job-portal-updated.onrender.com)
+[![GitHub Repository](https://img.shields.io/badge/GitHub-Repository-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/mohithannadata12390/job-portal)
+
+> 🌐 **Live Deployed App:** [https://job-portal-updated.onrender.com](https://job-portal-updated.onrender.com)
+
 An enterprise-ready, full-stack job portal built with the **MERN stack** (MongoDB, Express.js, React 18, Node.js) and powered by **Google Gemini AI**. The platform features dual AI assistants — a **Student Career Coach** for job seekers and a **RAG Recruiter Assistant** for hiring teams — along with an intelligent **Applicant Tracking System (ATS)**, automated **resume PDF skill extraction**, candidate **match scoring & ranking**, **AI interview generation**, and **comprehensive hiring scorecards**.
 
 ---
@@ -359,8 +364,9 @@ Base URL: `http://localhost:5011`
 ## 👤 Author
 
 **Mohith Annadatha**  
-- GitHub: [@mohithannadata12390](https://github.com/mohithannadata12390)
-- Repository: [job-portal](https://github.com/mohithannadata12390/job-portal)
+- **Live Demo**: [https://job-portal-updated.onrender.com](https://job-portal-updated.onrender.com)
+- **GitHub**: [@mohithannadata12390](https://github.com/mohithannadata12390)
+- **Repository**: [job-portal](https://github.com/mohithannadata12390/job-portal)
 
 ---
 
